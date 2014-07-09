@@ -1,0 +1,5 @@
+bibigrid-image
+*.swp
+VERSION
+*.pyc
+.hg/
