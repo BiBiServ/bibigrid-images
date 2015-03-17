@@ -14,6 +14,7 @@ IMAGE_TYPES=['master','slave']
 APT_SLAVE_LIST='apt-slave.txt'
 APT_MASTER_LIST='apt-master.txt'
 APT_UPDATE_CMD='apt-get update'
+GANGLIA_CONFIG='conf_default.php'
 APT_ADD_SOURCES='echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list'
 APT_ADD_GANGLIA='echo "deb http://us.archive.ubuntu.com/ubuntu saucy main universe" | sudo tee -a /etc/apt/sources.list'
 APT_ADD_KEY='curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -'
@@ -25,7 +26,6 @@ except:
     V='unknown version'
 
 def createImage():
-
     #parse command-line arguments
     parser = ArgumentParser(description='Create a BiBiGrid Master/Slave Image.')
     parser.add_argument('--version', action='version', version=V)
@@ -33,18 +33,19 @@ def createImage():
     parser.add_argument('--username', dest='username', default=DEFAULT_USERNAME, help='The username of the current user (default: ubuntu).')
     parser.add_argument('--skip-apt', dest='skipApt', action='store_true', help='Skip package installation entirely.')
     parser.add_argument('--step-by-step-apt', dest='stepByStepApt', action='store_true', help='Invoke apt separately for every package.')
+    parser.add_argument('--en', dest='en', action='store_true', help='Enhanced Networking for C3,R3 and I2 instances.')
     args = parser.parse_args()
     master, slave = args.imageType == 'master', args.imageType == 'slave'
     username=args.username
+    en = args.en
 
     #check if running as root
     if not geteuid() == 0:
         exit('Script must be run as root, e.g.: sudo {0} ...'.format(argv[0]))
 
     infoHeader()
-
+    print
     print 'Creating image for: '+args.imageType
-    print ''
 
     step=1
     if master:
@@ -91,9 +92,8 @@ def createImage():
         print 'Upgrading system...'
         run('DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
 
-    if master:
-        print 'Setting openjdk 7 as default JVM'
-        run('update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java')
+    run('update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java')
+    run('apt-get -y install dsc20')
     run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     
     
@@ -118,7 +118,12 @@ def createImage():
     configFile('/home/{0}/.cloud-locale-test.skip'.format(username), '')
     configFile('/etc/init.d/userdata', CFG_USERDATA, 0755)
     
-
+    if en:
+	print 'Enabling enhanced networking'
+        configFile('/home/{0}/en.sh'.format(username), SCRIPT_EN)
+        run('sh /home/{0}/en.sh'.format(username),False)
+        delFile('/home/{0}/en.sh'.format(username))
+	delFile('/home/{0}/ixgbevf-2.11.3.tar.gz'.format(username))
     if master:
         step = nextStep(step,steps,'GridEngine setup') #**************
 
@@ -131,7 +136,7 @@ def createImage():
         run('qconf -Ap ./pe.conf', False)
         run('qconf -Aq ./queue.conf', False)
 	run('qconf -Msconf ./schedule.conf', False)
-	run('qconf -Mconf ./global.conf', False)
+	run('qconf -Mconf ./global', False)
 
     if master:
         step = nextStep(step,steps,'BiBiServ2 Setup') #**************
@@ -181,9 +186,11 @@ def createImage():
         delFile('./hostgroup.conf')
         delFile('./pe.conf')
         delFile('./queue.conf')
-	delFile('./sge.conf')
 	delFile('./schedule.conf')
         delFile('/home/{0}/instantbibi.zip'.format(username))
+	delFile('/home/{0}/global'.format(username))
+	delFile('/usr/share/ganglia-webfrontend/conf_default.php')
+	configFile('/usr/share/ganglia-webfrontend/conf_default.php',get_data('__main__', GANGLIA_CONFIG))
     #disable bash history
     run('ln -sf /dev/null /root/.bash_history')
     run('ln -sf /dev/null /home/{0}/.bash_history'.format(username))

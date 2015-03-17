@@ -150,7 +150,7 @@ accounting_summary TRUE
 CFG_QUEUE_CONF='''qname                 main.q
 hostlist              @allhosts
 seq_no                0
-load_thresholds       0
+load_thresholds       NONE
 suspend_thresholds    NONE
 nsuspend              1
 suspend_interval      00:05:00
@@ -1585,4 +1585,12 @@ inter_dc_tcp_nodelay: false
 preheat_kernel_page_cache: false
 '''
 
-
+SCRIPT_EN='''
+wget "http://downloads.sourceforge.net/project/e1000/ixgbevf stable/2.11.3/ixgbevf-2.11.3.tar.gz"
+tar -zxf ./ixgbevf-*
+cd ixgbevf*/src
+make install
+modprobe ixgbevf
+sudo update-initramfs -c -k all
+echo "options ixgbevf InterruptThrottleRate=1,1,1,1,1,1,1,1" > /etc/modprobe.d/ixgbevf.conf
+'''
