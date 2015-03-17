@@ -93,7 +93,7 @@ def createImage():
         run('DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
 
     run('update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java')
-    run('apt-get -y install dsc20')
+    run('apt-get -y install dsc21')
     run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     
     
