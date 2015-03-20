@@ -60,7 +60,7 @@ def createImage():
         print 'apt skipped on user request.'
     else:
         run('echo "deb https://get.docker.io/ubuntu docker main" > /etc/apt/sources.list.d/docker.list')
-	run('yes | add-apt-repository ppa:semiosis/ubuntu-glusterfs-3.5')
+	run('yes | add-apt-repository ppa:gluster/glusterfs-3.5')
         aptUpdate()
         aptList = []
         if slave:
@@ -145,8 +145,7 @@ def createImage():
         run('wget http://bibiserv.cebitec.uni-bielefeld.de/resources/instantbibi.zip -O /home/{0}/instantbibi.zip'.format(username))
         run('sudo -u {0} unzip /home/{0}/instantbibi.zip -d /home/{0}/'.format(username))
         print 'Installing BiBiServ2.... This may take a few minutes.'
-        run('sudo -u {0} ant -buildfile /home/{0}/instantbibi/build.xml .get .unzip .get.glassfish .unzip.glassfish .get.modules .get.items'.format(username))
-        #run('sudo -u {0} ant -buildfile /home/{0}/instantbibi/build.xml stop'.format(username))
+        run('sudo -u {0} ant -buildfile /home/{0}/instantbibi/build.xml -Dglassfish4=true .get .unzip .get.glassfish .unzip.glassfish .get.modules .get.items'.format(username))
 
     if master:
         step = nextStep(step,steps,'Schedule-DRMAAc Perl Module Installation') #**************
