@@ -95,7 +95,7 @@ def createImage():
     run('update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java')
     run('apt-get -y install dsc21')
     run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
-    
+    run('adduser ubuntu docker')    
     
     step = nextStep(step,steps,'Configuration files') #**************
     configFile('/etc/cassandra/cassandra.yaml', CFG_CASSANDRA)
