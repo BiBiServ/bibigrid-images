@@ -4,7 +4,9 @@ automake1.10
 build-essential
 cryptsetup-bin
 debhelper
+docker-engine
 dpatch
+dsc21
 emacs
 ethstatus
 ganglia-monitor
@@ -63,6 +65,7 @@ libwmf0.2-7
 libxt-dev
 mdadm
 mercurial
+mesos
 mpi-default-dev
 netpbm
 nfs-kernel-server
@@ -83,6 +86,5 @@ ttf-dejavu
 x11-xserver-utils
 xfsprogs
 xterm
-lxc-docker
 linux-image-generic-lts-raring
 linux-headers-generic-lts-raring

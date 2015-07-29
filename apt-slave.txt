@@ -1,7 +1,9 @@
 openjdk-7-jdk
 build-essential
 debhelper
+docker-engine
 dpatch
+dsc21
 emacs23-nox
 ethstatus
 ganglia-monitor
@@ -43,6 +45,7 @@ librsvg2-2
 libtie-ixhash-perl
 libwmf0.2-7
 mdadm
+mesos
 mpi-default-dev
 netpbm
 nfs-common
@@ -56,6 +59,5 @@ x11-utils
 x11-xserver-utils
 xfsprogs
 xterm
-lxc-docker
 linux-image-generic-lts-raring
 linux-headers-generic-lts-raring

@@ -15,11 +15,15 @@ APT_SLAVE_LIST='apt-slave.txt'
 APT_MASTER_LIST='apt-master.txt'
 APT_UPDATE_CMD='apt-get update'
 GANGLIA_CONFIG='conf_default.php'
-APT_ADD_SOURCES='echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list'
-APT_ADD_GANGLIA='echo "deb http://us.archive.ubuntu.com/ubuntu saucy main universe" | sudo tee -a /etc/apt/sources.list'
-APT_ADD_KEY='curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -'
-APT_ADD_KEY_DOCKER='apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9'
-APT_INSTALL_CMD='DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install {0}'
+APT_SOURCES="echo 'deb http://debian.datastax.com/community 2.1 main' | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list;\n"+\
+	"echo 'deb http://us.archive.ubuntu.com/ubuntu trusty main universe' | sudo tee -a /etc/apt/sources.list;\n"+\
+	"echo 'deb http://bibiserv.cebitec.uni-bielefeld.de/resources/bioboxes/deb trusty main' | sudo tee -a /etc/apt/sources.list.d/bioboxes.sources.list;\n"+\
+	"echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' | sudo tee -a /etc/apt/sources.list.d/docker.list;\n"+\
+	"yes | add-apt-repository ppa:gluster/glusterfs-3.5"
+APT_KEYS='curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -;\n'+\
+	'apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'
+
+APT_INSTALL_CMD='DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install {0}'
 try:
     V=get_data('__main__','VERSION')
 except:
@@ -59,8 +63,6 @@ def createImage():
     if args.skipApt:
         print 'apt skipped on user request.'
     else:
-        run('echo "deb https://get.docker.io/ubuntu docker main" > /etc/apt/sources.list.d/docker.list')
-	run('yes | add-apt-repository ppa:gluster/glusterfs-3.5')
         aptUpdate()
         aptList = []
         if slave:
@@ -93,7 +95,6 @@ def createImage():
         run('DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
 
     run('update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java')
-    run('apt-get -y install dsc21')
     run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     run('adduser ubuntu docker')    
     
@@ -216,10 +217,8 @@ def apt(name,verifyCmd=None,verifyExpected=None):
 def aptUpdate():
     print 'Adding/Updating apt sources... '
     try:
-        check_output(APT_ADD_SOURCES, stderr=STDOUT,shell=True)
-	#check_output(APT_ADD_GANGLIA, stderr=STDOUT,shell=True)
-        check_output(APT_ADD_KEY, stderr=STDOUT,shell=True)
-        check_output(APT_ADD_KEY_DOCKER, stderr=STDOUT,shell=True)
+        check_output(APT_KEYS, stderr=STDOUT,shell=True)
+	check_output(APT_SOURCES, stderr=STDOUT,shell=True)
         check_output(APT_UPDATE_CMD, stderr=STDOUT, shell=True)
     except CalledProcessError as e:
         print 'Adding/Updating apt sources FAILED:'
