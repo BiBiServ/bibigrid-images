@@ -217,8 +217,11 @@ def apt(name,verifyCmd=None,verifyExpected=None):
 def aptUpdate():
     print 'Adding/Updating apt sources... '
     try:
+	print '... keys ...'
         check_output(APT_KEYS, stderr=STDOUT,shell=True)
+	print '... sources ...'
 	check_output(APT_SOURCES, stderr=STDOUT,shell=True)
+	print '... update ...'
         check_output(APT_UPDATE_CMD, stderr=STDOUT, shell=True)
     except CalledProcessError as e:
         print 'Adding/Updating apt sources FAILED:'
