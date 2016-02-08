@@ -17,11 +17,13 @@ APT_UPDATE_CMD='apt-get update'
 GANGLIA_CONFIG='conf_default.php'
 APT_SOURCES="echo 'deb http://debian.datastax.com/community 2.1 main' | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list;\n"+\
 	"echo 'deb http://us.archive.ubuntu.com/ubuntu trusty main universe' | sudo tee -a /etc/apt/sources.list;\n"+\
-	"echo 'deb http://bibiserv.cebitec.uni-bielefeld.de/resources/bioboxes/deb trusty main' | sudo tee -a /etc/apt/sources.list.d/bioboxes.sources.list;\n"+\
+	"echo 'deb http://repos.mesosphere.io/ubuntu trusty main' | sudo tee /etc/apt/sources.list.d/mesosphere.list;\n"+\
 	"echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' | sudo tee -a /etc/apt/sources.list.d/docker.list;\n"+\
-	"yes | add-apt-repository ppa:gluster/glusterfs-3.5"
+	"add-apt-repository -y ppa:openjdk-r/ppa;\n"+\
+	"add-apt-repository -y ppa:gluster/glusterfs-3.5"
 APT_KEYS='curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -;\n'+\
-	'apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'
+	'apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'+\
+	'apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF;\n'
 
 APT_INSTALL_CMD='DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install {0}'
 try:
@@ -94,7 +96,7 @@ def createImage():
         print 'Upgrading system...'
         run('DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
 
-    run('update-alternatives --set java /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java')
+    run('update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java')
     run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     run('adduser ubuntu docker')    
     
@@ -106,8 +108,8 @@ def createImage():
         configFile('./hostgroup.conf', CFG_HOSTGROUP_CONF)
         configFile('./pe.conf', CFG_PE_CONF)
         configFile('./queue.conf', CFG_QUEUE_CONF)
-	configFile('./global', CFG_SGE_CONF)
-	configFile('./schedule.conf', CFG_SCHEDULE_CONF)
+        configFile('./global', CFG_SGE_CONF)
+        configFile('./schedule.conf', CFG_SCHEDULE_CONF)
         configFile('/etc/ganglia/gmetad.conf', CFG_GMETAD_CONF)
         configFile('/etc/ganglia/gmond.conf', CFG_GMOND_CONF_MASTER)
         configFile('/etc/apache2/sites-enabled/ganglia.conf', CFG_APACHE_GANGLIA_CONF)
@@ -120,7 +122,7 @@ def createImage():
     configFile('/etc/init.d/userdata', CFG_USERDATA, 0755)
     
     if en:
-	print 'Enabling enhanced networking'
+        print 'Enabling enhanced networking'
         configFile('/home/{0}/en.sh'.format(username), SCRIPT_EN)
         run('sh /home/{0}/en.sh'.format(username),False)
         delFile('/home/{0}/en.sh'.format(username))

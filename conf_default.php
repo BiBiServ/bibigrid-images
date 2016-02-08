@@ -203,9 +203,10 @@ $conf['zoom_support'] = true;
 # Each value is the # of seconds in that range.
 #
 $conf['time_ranges'] = array(
-   '5min' => 300,
-   '15min' => 900,
-   '30min' => 1800,
+   '1min'=>60,
+   '5min'=>300,
+   '15min'=>900,
+   '30min'=>1800,
    'hour'=>3600,
    '2hr'=>7200,
    '4hr'=>14400,

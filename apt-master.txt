@@ -1,4 +1,4 @@
-openjdk-7-jdk
+openjdk-8-jdk
 ant-optional
 automake1.10
 build-essential
