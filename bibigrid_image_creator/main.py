@@ -100,6 +100,14 @@ def createImage():
     run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     run('adduser ubuntu docker')    
     
+    #****************** bibis3
+    
+    run ('curl https://bibiserv.cebitec.uni-bielefeld.de/resources/bibis3/bibis3.jar > /usr/local/bin/bibis3.jar')
+    run ("echo echo -n '#!/bin/bash\njava -jar `dirname $0`/bibis3.jar $@\n' > /usr/local/bin/bibis3")
+    run ("chmod 755 /usr/local/bin/bibis3") 
+    
+    
+    
     step = nextStep(step,steps,'Configuration files') #**************
     configFile('/etc/cassandra/cassandra.yaml', CFG_CASSANDRA)
     if master:
