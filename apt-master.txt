@@ -1,3 +1,4 @@
+chronos
 openjdk-8-jdk
 ant-optional
 automake1.10
