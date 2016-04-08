@@ -7,7 +7,6 @@ cryptsetup-bin
 debhelper
 docker-engine
 dpatch
-dsc21
 emacs
 ethstatus
 ganglia-monitor

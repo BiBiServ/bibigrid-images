@@ -3,7 +3,6 @@ build-essential
 debhelper
 docker-engine
 dpatch
-dsc21
 emacs23-nox
 ethstatus
 ganglia-monitor

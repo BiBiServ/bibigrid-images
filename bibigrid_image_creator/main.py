@@ -15,17 +15,17 @@ APT_SLAVE_LIST='apt-slave.txt'
 APT_MASTER_LIST='apt-master.txt'
 APT_UPDATE_CMD='apt-get update'
 GANGLIA_CONFIG='conf_default.php'
-APT_SOURCES="echo 'deb http://debian.datastax.com/community 2.1 main' | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list;\n"+\
-	"echo 'deb http://us.archive.ubuntu.com/ubuntu trusty main universe' | sudo tee -a /etc/apt/sources.list;\n"+\
+APT_SOURCES="echo 'deb http://us.archive.ubuntu.com/ubuntu trusty main universe' | sudo tee -a /etc/apt/sources.list;\n"+\
 	"echo 'deb http://repos.mesosphere.io/ubuntu trusty main' | sudo tee /etc/apt/sources.list.d/mesosphere.list;\n"+\
 	"echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' | sudo tee -a /etc/apt/sources.list.d/docker.list;\n"+\
 	"add-apt-repository -y ppa:openjdk-r/ppa;\n"+\
 	"add-apt-repository -y ppa:gluster/glusterfs-3.5"
-APT_KEYS='curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -;\n'+\
-	'apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'+\
+APT_KEYS='apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'+\
 	'apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF;\n'
 
 APT_INSTALL_CMD='DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install {0}'
+HADOOP_URL='http://mirror.dkd.de/apache/hadoop/common/hadoop-2.7.2/hadoop-2.7.2.tar.gz'
+CASSANDRA_URL='http://mirror.dkd.de/apache/cassandra/3.0.4/apache-cassandra-3.0.4-bin.tar.gz'
 try:
     V=get_data('__main__','VERSION')
 except:
@@ -97,7 +97,9 @@ def createImage():
         run('DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
 
     run('update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java')
-    run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
+    run('echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/{0}/.bashrc'.format(username))
+    run('echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/{0}/.profile'.format(username))
+    #run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     run('adduser ubuntu docker')    
     
     #****************** bibis3
@@ -107,9 +109,38 @@ def createImage():
     run ("chmod 755 /usr/local/bin/bibis3") 
     
     
+    #****************** hadoop
+    run ("adduser --group hadoop")
+    run ("adduser --system --home /opt/hadoop  --no-create-home --group hadoop")
+    run ("adduser ubuntu hadoop")
+   
+    if master:
+        run('wget {0} -O - | tar -C /opt -xzf - '.format(HADOOP_URL))
+        run('mv /opt/hadoop-2.7.2 /opt/hadoop')
+    if slave:
+        run ("mkdir /opt/hadoop")
+        
+    run ("chown -R hadoop:hadoop /opt/hadoop")
+    run ("chmod -R 775 /opt/hadoop")
+        
+        
+    #******************* cassandra
+    run ("adduser --group cassandra")
+    run ("adduser --system --home /opt/cassandra  --no-create-home --group cassandra")
+    run ("adduser ubuntu cassandra")
+    
+    if master:
+        run('wget {0} -O - | tar -C /opt --exclude=javadoc/* -xzf - '.format(CASSANDRA_URL))
+        run('mv /opt/apache-cassandra-3.0.4 /opt/cassandra')
+     
+    if slave:
+        run ("mkdir /opt/cassandra")
+        
+    run ("chown -R cassandra:cassandra /opt/cassandra")
+    run ("chmod -R 775 /opt/cassandra")
     
     step = nextStep(step,steps,'Configuration files') #**************
-    configFile('/etc/cassandra/cassandra.yaml', CFG_CASSANDRA)
+    
     if master:
         configFile('/home/{0}/add_exec'.format(username), CFG_ADD_EXEC, 0755)
         configFile('/etc/hosts.allow', CFG_HOSTS_ALLOW)
@@ -124,14 +155,17 @@ def createImage():
         configFile('/etc/ganglia/gmetad.conf', CFG_GMETAD_CONF)
         configFile('/etc/ganglia/gmond.conf', CFG_GMOND_CONF_MASTER)
         configFile('/etc/apache2/sites-enabled/ganglia.conf', CFG_APACHE_GANGLIA_CONF)
-        run('sed -i s/##NUM_TOKEN##/32/g /etc/cassandra/cassandra.yaml',False)
+        configFile('/opt/cassandra/conf/cassandra.yaml', CFG_CASSANDRA)
+        run('sed -i s/##NUM_TOKEN##/32/g /opt/cassandra/conf/cassandra.yaml',False)
     if slave:
-        run('sed -i s/##NUM_TOKEN##/256/g /etc/cassandra/cassandra.yaml',False)
+        #run('sed -i s/##NUM_TOKEN##/256/g /opt/cassandra/conf/cassandra.yaml',False)
         run('service ganglia-monitor stop',False)
         configFile('/etc/ganglia/gmond.conf', CFG_GMOND_CONF_SLAVE)
+        
     configFile('/etc/default/locale', CFG_DEFAULT_LOCALE)
     configFile('/home/{0}/.cloud-locale-test.skip'.format(username), '')
     configFile('/etc/init.d/userdata', CFG_USERDATA, 0755)
+    
     
     if en:
         print 'Enabling enhanced networking'
@@ -153,14 +187,14 @@ def createImage():
 	run('qconf -Msconf ./schedule.conf', False)
 	run('qconf -Mconf ./global', False)
 
-    if master:
-        step = nextStep(step,steps,'BiBiServ2 Setup') #**************
-
-        print 'Downloading instantbibi....'
-        run('wget http://bibiserv.cebitec.uni-bielefeld.de/resources/instantbibi.zip -O /home/{0}/instantbibi.zip'.format(username))
-        run('sudo -u {0} unzip /home/{0}/instantbibi.zip -d /home/{0}/'.format(username))
-        print 'Installing BiBiServ2.... This may take a few minutes.'
-        run('sudo -u {0} ant -buildfile /home/{0}/instantbibi/build.xml -Dglassfish4=true .get .unzip .get.glassfish .unzip.glassfish .get.modules .get.items'.format(username))
+ #   if master:
+ #       step = nextStep(step,steps,'BiBiServ2 Setup') #**************
+ #
+ #       print 'Downloading instantbibi....'
+ #       run('wget http://bibiserv.cebitec.uni-bielefeld.de/resources/instantbibi.zip -O /home/{0}/instantbibi.zip'.format(username))
+ #       run('sudo -u {0} unzip /home/{0}/instantbibi.zip -d /home/{0}/'.format(username))
+ #       print 'Installing BiBiServ2.... This may take a few minutes.'
+ #       run('sudo -u {0} ant -buildfile /home/{0}/instantbibi/build.xml -Dglassfish4=true .get .unzip .get.glassfish .unzip.glassfish .get.modules .get.items'.format(username))
 
     if master:
         step = nextStep(step,steps,'Schedule-DRMAAc Perl Module Installation') #**************
@@ -180,7 +214,7 @@ def createImage():
     #run('update-rc.d userdata defaults')
     if master:
         run('update-rc.d -f gridengine-exec remove')
-    run('update-rc.d -f cassandra remove')
+    #run('update-rc.d -f cassandra remove')
 
     step = nextStep(step,steps,'Other / Clean-up') #**************
 
@@ -191,7 +225,7 @@ def createImage():
 
     #clear apt cache
     run('apt-get clean')
-    run('service cassandra stop')
+    #run('service cassandra stop')
     if slave:
         run('service gridengine-exec stop', False)
     if master:
