@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 from subprocess import check_output, CalledProcessError, STDOUT
 from datetime import datetime
-from os import geteuid, remove, chmod
+from os import geteuid, remove, chmod, environ
 from argparse import ArgumentParser, SUPPRESS
 from pkgutil import get_data
 from sys import argv
 from cfg import *
 
 VERSION=0.1
+HTTP_PROXY=environ.get('HTTP_PROXY')
+HTTPS_PROXY=environ.get('HTTPS_PROXY')
+KEYSERVER_OPTIONS=""
+if (HTTP_PROXY != None):
+    print "using proxy setting from environment"
+    KEYSERVER_OPTIONS="--keyserver-options "+HTTP_PROXY
+
+
 DEFAULT_USERNAME='ubuntu'
 DEFAULT_FILE_MODE=0644
 IMAGE_TYPES=['master','slave']
@@ -20,12 +28,13 @@ APT_SOURCES="echo 'deb http://us.archive.ubuntu.com/ubuntu trusty main universe'
 	"echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' | sudo tee -a /etc/apt/sources.list.d/docker.list;\n"+\
 	"add-apt-repository -y ppa:openjdk-r/ppa;\n"+\
 	"add-apt-repository -y ppa:gluster/glusterfs-3.5"
-APT_KEYS='apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'+\
-	'apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF;\n'
+APT_KEYS='apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 '+KEYSERVER_OPTIONS+' --recv-keys 58118E89F3A912897C070ADBF76221572C52609D;\n'+\
+	'apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 '+KEYSERVER_OPTIONS+' --recv E56151BF;\n'
 
 APT_INSTALL_CMD='DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install {0}'
-HADOOP_URL='http://mirror.dkd.de/apache/hadoop/common/hadoop-2.7.2/hadoop-2.7.2.tar.gz'
-CASSANDRA_URL='http://mirror.dkd.de/apache/cassandra/3.0.4/apache-cassandra-3.0.4-bin.tar.gz'
+HADOOP_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/hadoop-2.7.2.tar.gz'
+SPARK_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/spark-2.0.0-bin-hadoop2.7.tgz'
+CASSANDRA_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/apache-cassandra-3.0.9-bin.tar.gz'
 try:
     V=get_data('__main__','VERSION')
 except:
@@ -33,7 +42,7 @@ except:
 
 def createImage():
     #parse command-line arguments
-    parser = ArgumentParser(description='Create a BiBiGrid Master/Slave Image.')
+    parser = ArgumentParser(description='Create a BiBiGrid Master/Slave Image. Use proxy properties from environment')
     parser.add_argument('--version', action='version', version=V)
     parser.add_argument('--for', dest='imageType', required=True, choices=IMAGE_TYPES, help='The type of the image to be created.')
     parser.add_argument('--username', dest='username', default=DEFAULT_USERNAME, help='The username of the current user (default: ubuntu).')
@@ -118,11 +127,22 @@ def createImage():
         run('wget {0} -O - | tar -C /opt -xzf - '.format(HADOOP_URL))
         run('mv /opt/hadoop-2.7.2 /opt/hadoop')
     if slave:
-        run ("mkdir /opt/hadoop")
+        run ("mkdir -p /opt/hadoop")
         
     run ("chown -R hadoop:hadoop /opt/hadoop")
     run ("chmod -R 775 /opt/hadoop")
-        
+    
+    #******************* spark
+    run ("adduser --group spark")
+    run ("adduser ubuntu spark")
+    
+    if master:
+        run('wget {0} -O - | tar -C /opt -xzf - '.format(SPARK_URL))
+        run('mv /opt/spark-2.0.0-bin-hadoop2.7 /opt/spark')
+    if slave:
+        run('mkdir -p /opt/spark')
+    run("chown -R ubuntu:spark /opt/spark")
+    run("chmod -R 775 /opt/spark")
         
     #******************* cassandra
     run ("adduser --group cassandra")
@@ -131,13 +151,15 @@ def createImage():
     
     if master:
         run('wget {0} -O - | tar -C /opt --exclude=javadoc/* -xzf - '.format(CASSANDRA_URL))
-        run('mv /opt/apache-cassandra-3.0.4 /opt/cassandra')
+        run('mv /opt/apache-cassandra-3.0.9 /opt/cassandra')
      
     if slave:
-        run ("mkdir /opt/cassandra")
+        run ("mkdir -p /opt/cassandra")
         
     run ("chown -R cassandra:cassandra /opt/cassandra")
     run ("chmod -R 775 /opt/cassandra")
+    
+    
     
     step = nextStep(step,steps,'Configuration files') #**************
     
@@ -158,12 +180,19 @@ def createImage():
         configFile('/opt/cassandra/conf/cassandra.yaml', CFG_CASSANDRA)
         run('sed -i s/##NUM_TOKEN##/32/g /opt/cassandra/conf/cassandra.yaml',False)
     if slave:
-        #run('sed -i s/##NUM_TOKEN##/256/g /opt/cassandra/conf/cassandra.yaml',False)
+        
         run('service ganglia-monitor stop',False)
         configFile('/etc/ganglia/gmond.conf', CFG_GMOND_CONF_SLAVE)
+    
+    #avoid starting zookepper, mesos-*, gridengine-* when booting instance  
+    run('echo "manual" >> /etc/init/mesos-master.conf');
+    run('echo "manual" >> /etc/init/mesos-slave.conf');
+    run('echo "manual" >> /etc/init/zookeeper.conf');
         
     configFile('/etc/default/locale', CFG_DEFAULT_LOCALE)
     configFile('/home/{0}/.cloud-locale-test.skip'.format(username), '')
+    
+    # add userdata skript
     configFile('/etc/init.d/userdata', CFG_USERDATA, 0755)
     
     
@@ -187,14 +216,7 @@ def createImage():
 	run('qconf -Msconf ./schedule.conf', False)
 	run('qconf -Mconf ./global', False)
 
- #   if master:
- #       step = nextStep(step,steps,'BiBiServ2 Setup') #**************
  #
- #       print 'Downloading instantbibi....'
- #       run('wget http://bibiserv.cebitec.uni-bielefeld.de/resources/instantbibi.zip -O /home/{0}/instantbibi.zip'.format(username))
- #       run('sudo -u {0} unzip /home/{0}/instantbibi.zip -d /home/{0}/'.format(username))
- #       print 'Installing BiBiServ2.... This may take a few minutes.'
- #       run('sudo -u {0} ant -buildfile /home/{0}/instantbibi/build.xml -Dglassfish4=true .get .unzip .get.glassfish .unzip.glassfish .get.modules .get.items'.format(username))
 
     if master:
         step = nextStep(step,steps,'Schedule-DRMAAc Perl Module Installation') #**************
