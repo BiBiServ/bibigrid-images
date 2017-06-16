@@ -32,9 +32,9 @@ APT_KEYS='apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 '+KEYSERV
 	'apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 '+KEYSERVER_OPTIONS+' --recv E56151BF;\n'
 
 APT_INSTALL_CMD='DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install {0}'
-HADOOP_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/hadoop-2.7.2.tar.gz'
-SPARK_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/spark-2.0.0-bin-hadoop2.7.tgz'
-CASSANDRA_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/apache-cassandra-3.0.9-bin.tar.gz'
+HADOOP_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/hadoop-2.7.3.tar.gz'
+SPARK_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/spark-2.1.1-bin-hadoop2.7.tgz'
+CASSANDRA_URL='https://bibiserv.cebitec.uni-bielefeld.de/resources/bibigrid/software/apache-cassandra-3.10-bin.tar.gz'
 try:
     V=get_data('__main__','VERSION')
 except:
@@ -108,7 +108,6 @@ def createImage():
     run('update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java')
     run('echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/{0}/.bashrc'.format(username))
     run('echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/{0}/.profile'.format(username))
-    #run('ln -s /usr/share/java/jna.jar /usr/share/cassandra/lib')
     run('adduser ubuntu docker')    
     
     #****************** bibis3
@@ -116,7 +115,9 @@ def createImage():
     run ('curl https://bibiserv.cebitec.uni-bielefeld.de/resources/bibis3/bibis3.jar > /usr/local/bin/bibis3.jar')
     run ("echo echo -n '#!/bin/bash\njava -jar `dirname $0`/bibis3.jar $@\n' > /usr/local/bin/bibis3")
     run ("chmod 755 /usr/local/bin/bibis3") 
-    
+   
+    #****************** swift
+    run ('pip install python-swiftclient')
     
     #****************** hadoop
     run ("adduser --group hadoop")
@@ -125,7 +126,7 @@ def createImage():
    
     if master:
         run('wget {0} -O - | tar -C /opt -xzf - '.format(HADOOP_URL))
-        run('mv /opt/hadoop-2.7.2 /opt/hadoop')
+        run('mv /opt/hadoop-2.7.3 /opt/hadoop')
     if slave:
         run ("mkdir -p /opt/hadoop")
         
@@ -138,7 +139,7 @@ def createImage():
     
     if master:
         run('wget {0} -O - | tar -C /opt -xzf - '.format(SPARK_URL))
-        run('mv /opt/spark-2.0.0-bin-hadoop2.7 /opt/spark')
+        run('mv /opt/spark-2.1.1-bin-hadoop2.7 /opt/spark')
     if slave:
         run('mkdir -p /opt/spark')
     run("chown -R ubuntu:spark /opt/spark")
@@ -151,7 +152,7 @@ def createImage():
     
     if master:
         run('wget {0} -O - | tar -C /opt --exclude=javadoc/* -xzf - '.format(CASSANDRA_URL))
-        run('mv /opt/apache-cassandra-3.0.9 /opt/cassandra')
+        run('mv /opt/apache-cassandra-3.10 /opt/cassandra')
      
     if slave:
         run ("mkdir -p /opt/cassandra")
@@ -159,7 +160,8 @@ def createImage():
     run ("chown -R cassandra:cassandra /opt/cassandra")
     run ("chmod -R 775 /opt/cassandra")
     
-    
+    #****************** add all /opt/.*/bin into users path
+    run("for p in $(find /opt -type d -regex '.*/bin'); do echo \"export PATH=$PATH:$p\" >> /home/ubuntu/.bashrc'; done")
     
     step = nextStep(step,steps,'Configuration files') #**************
     
@@ -176,9 +178,14 @@ def createImage():
         run('service ganglia-monitor stop',False)
         configFile('/etc/ganglia/gmetad.conf', CFG_GMETAD_CONF)
         configFile('/etc/ganglia/gmond.conf', CFG_GMOND_CONF_MASTER)
-        configFile('/etc/apache2/sites-enabled/ganglia.conf', CFG_APACHE_GANGLIA_CONF)
+        configFile('/etc/apache2/sites-available/ganglia.conf', CFG_APACHE_GANGLIA_CONF)
+        configFile('/etc/apache2/conf-available/spark.conf',CFG_APACHE_SPARK_CONF)
+        configFile('/etc/apache2/conf-available/result.conf',CFG_APACHE_RESULT_CONF)
         configFile('/opt/cassandra/conf/cassandra.yaml', CFG_CASSANDRA)
         run('sed -i s/##NUM_TOKEN##/32/g /opt/cassandra/conf/cassandra.yaml',False)
+        run("/usr/sbin/a2enmod proxy proxy_http proxy_html xml2en",False)
+       
+        run("/usr/sbin/a2ensite ganglia",False)
     if slave:
         
         run('service ganglia-monitor stop',False)
@@ -236,7 +243,6 @@ def createImage():
     #run('update-rc.d userdata defaults')
     if master:
         run('update-rc.d -f gridengine-exec remove')
-    #run('update-rc.d -f cassandra remove')
 
     step = nextStep(step,steps,'Other / Clean-up') #**************
 
@@ -247,7 +253,7 @@ def createImage():
 
     #clear apt cache
     run('apt-get clean')
-    #run('service cassandra stop')
+
     if slave:
         run('service gridengine-exec stop', False)
     if master:

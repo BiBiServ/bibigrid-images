@@ -2,6 +2,25 @@
 CFG_APACHE_GANGLIA_CONF='''Alias /ganglia /usr/share/ganglia-webfrontend
 '''
 
+CFG_APACHE_SPARK_CONF='''RewriteEngine On
+ProxyPassMatch "/spark/(.*)" "http://localhost:8080/spark/$1"
+ProxyPassReverse "/spark/(.*)" "http://localhost:8080/spark/$1"
+ProxyPassMatch "/static/(.*)" "http://localhost:8080/static/$1"
+ProxyPassReverse "/static/(.*)" "http://localhost:8080/static/$1"
+ProxyPassMatch "/proxy/(.*)" "http://localhost:8080/proxy/$1"
+ProxyPassReverse "/proxy/(.*)" "http://localhost:8080/proxy/$1"
+'''
+
+CFG_APACHE_RESULT_CONF='''
+<Directory /vol/spool/www>
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+</Directory>
+
+Alias /result /vol/spool/www
+'''
+
 
 CFG_DEFAULT_LOCALE='''LANG="en_US.utf8"
 '''
