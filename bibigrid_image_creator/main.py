@@ -161,7 +161,7 @@ def createImage():
     run ("chmod -R 775 /opt/cassandra")
     
     #****************** add all /opt/.*/bin into users path
-    run("for p in $(find /opt -type d -regex '.*/bin'); do echo \"export PATH=$PATH:$p\" >> /home/ubuntu/.bashrc'; done")
+    run("for p in $(find /opt -type d -regex '.*/bin'); do echo \"export PATH=$PATH:$p\" >> /home/ubuntu/.bashrc; done")
     
     step = nextStep(step,steps,'Configuration files') #**************
     
