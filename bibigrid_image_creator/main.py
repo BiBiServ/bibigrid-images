@@ -161,7 +161,7 @@ def createImage():
     run ("chmod -R 775 /opt/cassandra")
     
     #****************** add all /opt/.*/bin into users path
-    run("for p in $(find /opt -type d -regex '.*/bin'); do echo \"export PATH=$PATH:$p\" >> /home/ubuntu/.bashrc; done")
+    run("for p in $(find /opt -type d -regex '.*/bin'); do echo \"export PATH=\$PATH:$p\" >> /home/ubuntu/.bashrc; done")
     
     step = nextStep(step,steps,'Configuration files') #**************
     
@@ -183,7 +183,7 @@ def createImage():
         configFile('/etc/apache2/conf-available/result.conf',CFG_APACHE_RESULT_CONF)
         configFile('/opt/cassandra/conf/cassandra.yaml', CFG_CASSANDRA)
         run('sed -i s/##NUM_TOKEN##/32/g /opt/cassandra/conf/cassandra.yaml',False)
-        run("/usr/sbin/a2enmod proxy proxy_http proxy_html xml2en",False)
+        run("/usr/sbin/a2enmod proxy proxy_http proxy_html xml2enc rewrite",False)
        
         run("/usr/sbin/a2ensite ganglia",False)
     if slave:
