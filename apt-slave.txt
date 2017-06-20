@@ -9,8 +9,6 @@ ganglia-monitor
 gccxml
 gfortran-4.6
 ghostscript
-glusterfs-client
-glusterfs-server
 gnuplot-nox
 gridengine-client
 gridengine-exec
@@ -51,6 +49,7 @@ nfs-common
 postfix
 psutils
 python-dev
+python-pip
 r-base-dev
 r-recommended
 sysstat

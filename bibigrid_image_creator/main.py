@@ -180,6 +180,8 @@ def createImage():
         configFile('/etc/ganglia/gmond.conf', CFG_GMOND_CONF_MASTER)
         configFile('/etc/apache2/sites-available/ganglia.conf', CFG_APACHE_GANGLIA_CONF)
         configFile('/etc/apache2/conf-available/spark.conf',CFG_APACHE_SPARK_CONF)
+	configFile('/etc/apache2/conf-available/hdfs.conf',CFG_APACHE_HDFS_CONF)
+	configFile('/etc/apache2/conf-available/mesos.conf',CFG_APACHE_MESOS_CONF)
         configFile('/etc/apache2/conf-available/result.conf',CFG_APACHE_RESULT_CONF)
         configFile('/opt/cassandra/conf/cassandra.yaml', CFG_CASSANDRA)
         run('sed -i s/##NUM_TOKEN##/32/g /opt/cassandra/conf/cassandra.yaml',False)

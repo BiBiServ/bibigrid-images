@@ -14,8 +14,6 @@ ganglia-webfrontend
 gccxml
 gfortran-4.6
 ghostscript
-glusterfs-client
-glusterfs-server
 gmetad
 gnuplot-nox
 gridengine-client

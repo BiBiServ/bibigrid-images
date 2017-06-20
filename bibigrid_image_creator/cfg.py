@@ -2,13 +2,96 @@
 CFG_APACHE_GANGLIA_CONF='''Alias /ganglia /usr/share/ganglia-webfrontend
 '''
 
-CFG_APACHE_SPARK_CONF='''RewriteEngine On
-ProxyPassMatch "/spark/(.*)" "http://localhost:8080/spark/$1"
-ProxyPassReverse "/spark/(.*)" "http://localhost:8080/spark/$1"
-ProxyPassMatch "/static/(.*)" "http://localhost:8080/static/$1"
-ProxyPassReverse "/static/(.*)" "http://localhost:8080/static/$1"
-ProxyPassMatch "/proxy/(.*)" "http://localhost:8080/proxy/$1"
-ProxyPassReverse "/proxy/(.*)" "http://localhost:8080/proxy/$1"
+CFG_APACHE_SPARK_CONF='''<Location /spark>
+        ProxyHTMLLinks a href
+        ProxyHTMLLinks area href
+        ProxyHTMLLinks link href
+        ProxyHTMLLinks img src longdesc usemap
+        ProxyHTMLLinks object classid codebase data usemap
+        ProxyHTMLLinks q cite
+        ProxyHTMLLinks blockquote cite
+        ProxyHTMLLinks ins cite
+        ProxyHTMLLinks del cite
+        ProxyHTMLLinks form action
+        ProxyHTMLLinks input src usemap
+        ProxyHTMLLinks head profile
+        ProxyHTMLLinks base href
+        ProxyHTMLLinks script src for
+        ProxyHTMLLinks meta content
+        
+        ProxyHTMLEvents onclick ondblclick onmousedown onmouseup \
+            onmouseover onmousemove onmouseout onkeypress \
+            onkeydown onkeyup onfocus onblur onload \
+            onunload onsubmit onreset onselect onchange
+        
+        ProxyPass http://localhost:8080
+        ProxyPassReverse http://localhost:8080
+        ProxyHTMLEnable On
+        ProxyHTMLExtended On
+        SetOutputFilter INFLATE;proxy-html;DEFLATE;     
+        ProxyHTMLURLMap http://localhost:8080 /spark
+</Location>
+'''
+CFG_APACHE_HDFS_CONF='''<Location /hdfs>
+        ProxyHTMLLinks a href
+        ProxyHTMLLinks area href
+        ProxyHTMLLinks link href
+        ProxyHTMLLinks img src longdesc usemap
+        ProxyHTMLLinks object classid codebase data usemap
+        ProxyHTMLLinks q cite
+        ProxyHTMLLinks blockquote cite
+        ProxyHTMLLinks ins cite
+        ProxyHTMLLinks del cite
+        ProxyHTMLLinks form action
+        ProxyHTMLLinks input src usemap
+        ProxyHTMLLinks head profile
+        ProxyHTMLLinks base href
+        ProxyHTMLLinks script src for
+        ProxyHTMLLinks meta content
+        
+        ProxyHTMLEvents onclick ondblclick onmousedown onmouseup \
+            onmouseover onmousemove onmouseout onkeypress \
+            onkeydown onkeyup onfocus onblur onload \
+            onunload onsubmit onreset onselect onchange
+        
+        ProxyPass http://localhost:50070
+        ProxyPassReverse http://localhost:50070
+        ProxyHTMLEnable On
+        ProxyHTMLExtended On
+        SetOutputFilter INFLATE;proxy-html;DEFLATE;     
+        ProxyHTMLURLMap http://localhost:50070 /hdfs
+</Location>
+'''
+
+CFG_APACHE_MESOS_CONF='''<Location /mesos>
+        ProxyHTMLLinks a href
+        ProxyHTMLLinks area href
+        ProxyHTMLLinks link href
+        ProxyHTMLLinks img src longdesc usemap
+        ProxyHTMLLinks object classid codebase data usemap
+        ProxyHTMLLinks q cite
+        ProxyHTMLLinks blockquote cite
+        ProxyHTMLLinks ins cite
+        ProxyHTMLLinks del cite
+        ProxyHTMLLinks form action
+        ProxyHTMLLinks input src usemap
+        ProxyHTMLLinks head profile
+        ProxyHTMLLinks base href
+        ProxyHTMLLinks script src for
+        ProxyHTMLLinks meta content
+        
+        ProxyHTMLEvents onclick ondblclick onmousedown onmouseup \
+            onmouseover onmousemove onmouseout onkeypress \
+            onkeydown onkeyup onfocus onblur onload \
+            onunload onsubmit onreset onselect onchange
+        
+        ProxyPass http://localhost:5050
+        ProxyPassReverse http://localhost:5050
+        ProxyHTMLEnable On
+        ProxyHTMLExtended On
+        SetOutputFilter INFLATE;proxy-html;DEFLATE;     
+        ProxyHTMLURLMap http://localhost:5050 /mesos
+</Location>
 '''
 
 CFG_APACHE_RESULT_CONF='''
