@@ -1,0 +1,14 @@
+--- dhclient-script.orig	2017-05-24 15:10:29.912394093 +0000
++++ dhclient-script	2017-05-24 15:13:04.536915188 +0000
+@@ -145,10 +145,8 @@
+         if [ -z "$current_hostname" ] ||
+            [ "$current_hostname" = '(none)' ] ||
+            [ "$current_hostname" = 'localhost' ] ||
+-           [ "$current_hostname" = "$old_host_name" ]; then
+-           if [ "$new_host_name" != "$current_host_name" ]; then
++           [ "$new_host_name" != "$current_host_name" ]; then
+                hostname "$new_host_name"
+-           fi
+         fi
+     fi
+ }

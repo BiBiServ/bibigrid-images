@@ -1,0 +1,11 @@
+--- snapd.service.orig	2017-05-24 20:26:31.853509249 +0000
++++ snapd.service	2017-05-24 20:16:13.949870911 +0000
+@@ -4,7 +4,7 @@
+ 
+ [Service]
+ ExecStart=/usr/lib/snapd/snapd
+-EnvironmentFile=-/etc/environment
++EnvironmentFile=/etc/environment
+ Restart=always
+ 
+ [Install]

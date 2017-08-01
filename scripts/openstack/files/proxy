@@ -1,0 +1,87 @@
+# Hook script that allows an image running internal (using proxy settings) AND in 
+# any other public network. 
+#
+# Place this dhcp hook in /etc/dhcp/dhclient-exit-hooks.d to be executed after every dhcp 
+# lease
+
+
+
+# check if  CeBiTec Proxy is available 
+/bin/nc ${PROXYSERVER} ${PROXYPORT} </dev/null 2>/dev/null
+
+if [ $? -eq 0 ]; then # proxy is available
+    if [ ! -f /etc/use-proxy ]; then # only if proxy is not set we have to change the configuration
+    
+        # Update /etc/environment
+        cat << "EOF" >> /etc/environment
+http_proxy=${HTTP_PROXY}
+https_proxy=${HTTPS_PROXY}
+ftp_proxy=${FTP_PROXY}
+no_proxy=${NO_PROXY}
+HTTP_PROXY=${HTTP_PROXY}
+HTTPS_PROXY=${HTTPS_PROXY}
+FTP_PROXY=${FTP_PROXY}
+NO_PROXY=${NO_PROXY}
+EOF
+    
+        # Update /etc/apt/apt.conf"
+        cat << "EOF" >> /etc/apt/apt.conf
+Acquire::http::Proxy "${HTTP_PROXY}";
+Acquire::https::Proxy "${HTTPS_PROXY}";
+EOF
+
+        # Update /etc/default/docker # Upstart (e.g. Ubuntu 14.04)
+        cat << "EOF" >> /etc/default/docker.conf
+export http_proxy=${HTTP_PROXY}
+export https_proxy=${HTTPS_PROXY}
+export no_proxy=${NO_PROXY}
+EOF
+
+        # Update /etc/systemd/system/docker.service.d/proxysettings.conf # SystemD (e.g. Ubuntu 16.04)
+	mkdir -p /etc/systemd/system/docker.service.d
+        cat << "EOF" >> /etc/systemd/system/docker.service.d/proxysettings.conf
+[Service]
+Environment="http_proxy=${HTTP_PROXY}
+Environment="https_proxy=${HTTPS_PROXY}
+Environment="ftp_proxy=${FTP_PROXY}
+Environment="no_proxy=${NO_PROXY}
+Environment="HTTP_PROXY=${HTTP_PROXY}
+Environment="HTTPS_PROXY=${HTTPS_PROXY}
+Environment="FTP_PROXY=${FTP_PROXY}
+Environment="NO_PROXY=${NO_PROXY}
+EOF
+        # create /etc/cebitec-proxy file ...
+        touch /etc/use-proxy
+    fi;
+
+else # proxy is not available
+
+    if [ -f /etc/use-proxy ]; then
+        # clean /etc/environment
+        mv /etc/environment /etc/environment.bck
+        grep -v '${PROXYSERVER}' /etc/environment.bck > /etc/environment
+        rm /etc/environment.bck
+    
+        # clean /etc/apt/apt.conf
+        mv /etc/apt/apt.conf /etc/apt/apt.conf.bck
+        grep -v '${PROXYSERVER}' /etc/apt/apt.conf.bck > /etc/apt/apt.conf
+        rm /etc/apt/apt.conf.bck
+        
+        # clean /etc/default/docker
+        mv /etc/default/docker /etc/default/docker.bck
+        grep -v '${PROXYSERVER}' /etc/default/docker.bck > /etc/default/docker
+        rm /etc/default/docker.bck
+        
+        # clean /etc/systemd/system/docker.service.d/proxysettings.conf 
+        mv /etc/systemd/system/docker.service.d/proxysettings.conf /etc/systemd/system/docker.service.d/proxysettings.conf.bck
+        grep -v '${PROXYSERVER}' /etc/systemd/system/docker.service.d/proxysettings.conf.bck > /etc/systemd/system/docker.service.d/proxysettings.conf
+        rm /etc/systemd/system/docker.service.d/proxysettings.conf.bc
+
+        # remove /etc/cebitec-proxy file ...
+        rm /etc/use-proxy
+
+    fi;
+
+fi;
+
+
